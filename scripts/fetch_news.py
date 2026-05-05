@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 import json
 import logging
+import boto3
+from botocore.exceptions import ClientError
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 logging.basicConfig(
@@ -16,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 API_KEY = os.getenv("NEWS_API_KEY")
-
+AWS_BUCKET = os.getenv("AWS_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION")
 if not API_KEY:
     raise ValueError("NEWS_API_KEY not found in .env file. Please add it.")
 
@@ -94,6 +97,19 @@ def save_results(df):
     json_path = f"data/{TODAY}_news.json"
     df.to_json(json_path, orient="records", indent=2, date_format="iso")
     logger.info(f"Saved JSON → {json_path}")
+# ── Upload to S3 ───────────────────────────────────────────
+    try:
+        s3 = boto3.client(
+            "s3",
+            region_name=AWS_REGION,
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
+        )
+        s3_key = f"daily/{TODAY}_news.json"
+        s3.upload_file(json_path, AWS_BUCKET, s3_key)
+        logger.info(f"Uploaded to S3 → s3://{AWS_BUCKET}/{s3_key}")
+    except ClientError as e:
+        logger.error(f"S3 upload failed: {e}")
 
 def print_summary(df):
     print("\n" + "="*60)
