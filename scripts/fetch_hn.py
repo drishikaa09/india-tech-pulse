@@ -5,6 +5,7 @@ import json
 import os
 import logging
 from dotenv import load_dotenv
+import psycopg2
 from datetime import datetime
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -45,7 +46,8 @@ def fetch_story(story_id):
         return response.json()
     except:
         return None
- EXCLUDE_TERMS = ["openindiana", "indiana", "india ink", "india rubber"]
+
+EXCLUDE_TERMS = ["openindiana", "indiana", "india ink", "india rubber"]
 
 def is_india_relevant(title):
     if not title:
@@ -90,6 +92,34 @@ def add_sentiment(df):
     logger.info("Sentiment analysis complete")
     return df
 
+def save_to_rds(df):
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT"),
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD")
+        )
+        cur = conn.cursor()
+        inserted = 0
+        for _, row in df.iterrows():
+            cur.execute("""
+                INSERT INTO hn_stories (story_id, title, url, score, by, time, descendants)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (story_id) DO NOTHING
+            """, (
+                row["story_id"], row["title"], row["url"],
+                row["score"], row["by"], row["time"], row["comments"]
+            ))
+            inserted += cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info(f"Saved {inserted} new stories to RDS")
+    except Exception as e:
+        logger.error(f"RDS insert failed: {e}")
+
 def save_results(df):
     os.makedirs("data", exist_ok=True)
 
@@ -113,6 +143,7 @@ def save_results(df):
         logger.info(f"Uploaded to S3 → s3://{AWS_BUCKET}/{s3_key}")
     except Exception as e:
         logger.error(f"S3 upload failed: {e}")
+    save_to_rds(df)
 
 def print_summary(df):
     print("\n" + "="*60)
