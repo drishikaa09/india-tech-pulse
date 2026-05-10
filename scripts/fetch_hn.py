@@ -23,12 +23,38 @@ AWS_REGION = os.getenv("AWS_REGION")
 TODAY = datetime.now().strftime("%Y-%m-%d")
 
 INDIA_KEYWORDS = [
+    # Cities
     "india", "indian", "bangalore", "bengaluru", "mumbai",
-    "delhi", "hyderabad", "pune", "chennai",
-    "infosys", "wipro", "tata consultancy", "reliance",
+    "delhi", "hyderabad", "pune", "chennai", "kolkata",
+    "ahmedabad", "jaipur", "noida", "gurgaon", "gurugram",
+    # Big tech companies
+    "infosys", "wipro", "tata consultancy", "tcs",
+    "hcl technologies", "tech mahindra", "cognizant india",
+    # Conglomerates
+    "reliance industries", "adani", "mahindra",
+    # Unicorns & startups
     "zomato", "swiggy", "razorpay", "cred", "zepto",
-    "flipkart", "ola cab", "paytm", "byju", "meesho",
-    "naukri", "freshworks", "zoho", "inmobi"
+    "flipkart", "paytm", "byju", "meesho",
+    "naukri", "freshworks", "zoho", "inmobi", "unacademy",
+    "phonepe", "groww", "upstox", "khatabook",
+    "lenskart", "mamaearth", "dream11",
+    "blinkit", "dunzo", "rapido", "sharechat", "dailyhunt",
+    "ola electric", "ather energy",
+    # Ecosystem & policy
+    "iit", "iim", "iitb", "iitd", "iitm",
+    "sequoia india", "accel india",
+    "startup india", "digital india", "atmanirbhar",
+    "upi", "npci", "aadhaar",
+    "india stack", "bharat",
+    # Finance
+    "sensex", "nse india", "bse india",
+    "sebi india", "rbi india",
+    # Space & science
+    "isro", "chandrayaan", "gaganyaan",
+    # Telecom
+    "jio", "airtel india",
+    # Diaspora
+    "indian diaspora", "indian american", "indian origin",
 ]
 
 def fetch_top_stories(limit=500):
@@ -55,7 +81,12 @@ def is_india_relevant(title):
     title_lower = title.lower()
     if any(excl in title_lower for excl in EXCLUDE_TERMS):
         return False
-    return any(keyword in title_lower for keyword in INDIA_KEYWORDS)
+    return any(
+        f" {keyword} " in f" {title_lower} " or
+        title_lower.startswith(keyword) or
+        title_lower.endswith(keyword)
+        for keyword in INDIA_KEYWORDS
+    )
 
 def fetch_india_hn_stories(story_ids):
     india_stories = []
