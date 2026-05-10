@@ -11,6 +11,7 @@ from scripts.fetch_hn import (
     add_sentiment,
     save_results
 )
+from scripts.send_weekly_digest import send_digest
 
 default_args = {
     'owner': 'charu',
@@ -65,4 +66,10 @@ with DAG(
         python_callable=task_save,
     )
 
-    fetch_stories >> run_sentiment >> save_data
+    weekly_digest = PythonOperator(
+        task_id='send_weekly_digest',
+        python_callable=send_digest,
+        trigger_rule='all_done',
+    )
+
+    fetch_stories >> run_sentiment >> save_data >> weekly_digest
