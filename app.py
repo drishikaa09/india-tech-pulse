@@ -1,5 +1,4 @@
 import streamlit as st
-import psycopg2
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -202,22 +201,23 @@ PLOT_LAYOUT = dict(
 @st.cache_data(ttl=300)
 def load_data(days=30):
     try:
-        conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            sslmode="require"
+        from sqlalchemy import create_engine, text
+        host = os.getenv("DB_HOST")
+        port = os.getenv("DB_PORT", "5432")
+        dbname = os.getenv("DB_NAME")
+        user = os.getenv("DB_USER")
+        password = os.getenv("DB_PASSWORD")
+        engine = create_engine(
+            f"postgresql+pg8000://{user}:{password}@{host}:{port}/{dbname}",
+            connect_args={"ssl_context": True}
         )
         since = datetime.now() - timedelta(days=days)
-        df = pd.read_sql("""
-            SELECT story_id, title, url, score, by, descendants, fetched_at
-            FROM hn_stories
-            WHERE fetched_at >= %s
-            ORDER BY score DESC
-        """, conn, params=(since,))
-        conn.close()
+        with engine.connect() as conn:
+            df = pd.read_sql(
+                text("SELECT story_id, title, url, score, by, descendants, fetched_at FROM hn_stories WHERE fetched_at >= :since ORDER BY score DESC"),
+                conn,
+                params={"since": since}
+            )
         return df
     except Exception as e:
         st.error(f"Database connection failed: {e}")
