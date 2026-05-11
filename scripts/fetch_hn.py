@@ -5,7 +5,6 @@ import json
 import os
 import logging
 from dotenv import load_dotenv
-import psycopg2
 from datetime import datetime
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -125,28 +124,34 @@ def add_sentiment(df):
 
 def save_to_rds(df):
     try:
-        conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD")
+        from sqlalchemy import create_engine, text
+        host = os.getenv("DB_HOST")
+        port = os.getenv("DB_PORT", "5432")
+        dbname = os.getenv("DB_NAME")
+        user = os.getenv("DB_USER")
+        password = os.getenv("DB_PASSWORD")
+        engine = create_engine(
+            f"postgresql+pg8000://{user}:{password}@{host}:{port}/{dbname}",
+            connect_args={"ssl_context": True}
         )
-        cur = conn.cursor()
         inserted = 0
-        for _, row in df.iterrows():
-            cur.execute("""
-                INSERT INTO hn_stories (story_id, title, url, score, by, time, descendants)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (story_id) DO NOTHING
-            """, (
-                row["story_id"], row["title"], row["url"],
-                row["score"], row["by"], row["time"], row["comments"]
-            ))
-            inserted += cur.rowcount
-        conn.commit()
-        cur.close()
-        conn.close()
+        with engine.connect() as conn:
+            for _, row in df.iterrows():
+                result = conn.execute(text("""
+                    INSERT INTO hn_stories (story_id, title, url, score, by, time, descendants)
+                    VALUES (:story_id, :title, :url, :score, :by, :time, :descendants)
+                    ON CONFLICT (story_id) DO NOTHING
+                """), {
+                    "story_id": row["story_id"],
+                    "title": row["title"],
+                    "url": row["url"],
+                    "score": row["score"],
+                    "by": row["by"],
+                    "time": row["time"],
+                    "descendants": row["comments"]
+                })
+                inserted += result.rowcount
+            conn.commit()
         logger.info(f"Saved {inserted} new stories to RDS")
     except Exception as e:
         logger.error(f"RDS insert failed: {e}")
