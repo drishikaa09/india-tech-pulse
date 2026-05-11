@@ -386,6 +386,6 @@ with col2:
 
 st.markdown("""
 <div class="footer-text">
-    INDIA TECH PULSE &nbsp;·&nbsp; AWS S3 + RDS + AIRFLOW + TERRAFORM &nbsp;·&nbsp; BUILT BY CHARU TIWARI
+    INDIA TECH PULSE &nbsp;·&nbsp; AWS S3 + RDS + AIRFLOW + TERRAFORM &nbsp;·&nbsp; BUILT BY DRISHIKA TIWARI
 </div>
 """, unsafe_allow_html=True)
