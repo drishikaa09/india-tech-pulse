@@ -3,7 +3,7 @@
 A fully automated data engineering pipeline that tracks India-relevant stories on Hacker News daily, performs sentiment analysis, and visualises results on a live dashboard.
 
 ## Live Dashboard
-**[india-tech-pulse-jbshrzxp6f35vl6vvywitv.streamlit.app](https://india-tech-pulse-jbshrzxp6f35vl6vvywitv.streamlit.app)**
+**[india-tech-pulse-jbshrzxp6f35vl6vvywitv.streamlit.app](https://india-tech-pulse.streamlit.app/)**
 
 ## How it works
 
